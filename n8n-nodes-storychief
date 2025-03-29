@@ -1,0 +1,465 @@
+import { IExecuteFunctions, INodeExecutionData, INodeType, INodeTypeDescription } from "n8n-workflow";
+
+export class StoryChief implements INodeType {
+    description: INodeTypeDescription = {
+        displayName: "StoryChief",
+        name: "storyChief",
+        group: ["transform"],
+        version: 1,
+        description: "Media and Newsletter handling for StoryChief",
+        defaults: {
+            name: "StoryChief"
+        },
+        inputs: ["main"],
+        outputs: ["main"],
+        credentials: [
+            {
+                name: "storyChiefApi",
+                required: true
+            }
+        ],
+        properties: [
+            {
+                displayName: "Operation",
+                name: "operation",
+                type: "options",
+                options: [
+                    {
+                        name: "Upload Media",
+                        value: "uploadMedia"
+                    },
+                    {
+                        name: "Get Media Library",
+                        value: "getMediaLibrary"
+                    },
+                    {
+                        name: "Search Media",
+                        value: "searchMedia"
+                    },
+                    {
+                        name: "Attach Media to Post",
+                        value: "attachMedia"
+                    },
+                    {
+                        name: "Create Newsletter",
+                        value: "createNewsletter"
+                    },
+                    {
+                        name: "Get Newsletter Templates",
+                        value: "getTemplates"
+                    },
+                    {
+                        name: "Create Newsletter Template",
+                        value: "createTemplate"
+                    }
+                ],
+                default: "uploadMedia",
+                required: true
+            },
+            {
+                displayName: "Media URL",
+                name: "mediaUrl",
+                type: "string",
+                displayOptions: {
+                    show: {
+                        operation: ["uploadMedia"]
+                    }
+                },
+                default: "",
+                required: true
+            },
+            {
+                displayName: "Media Title",
+                name: "mediaTitle",
+                type: "string",
+                displayOptions: {
+                    show: {
+                        operation: ["uploadMedia"]
+                    }
+                },
+                default: "",
+                required: true
+            },
+            {
+                displayName: "Search Query",
+                name: "searchQuery",
+                type: "string",
+                displayOptions: {
+                    show: {
+                        operation: ["searchMedia"]
+                    }
+                },
+                default: "",
+                required: true
+            },
+            {
+                displayName: "Media Type",
+                name: "mediaType",
+                type: "options",
+                displayOptions: {
+                    show: {
+                        operation: ["searchMedia", "getMediaLibrary"]
+                    }
+                },
+                options: [
+                    {
+                        name: "All",
+                        value: "all"
+                    },
+                    {
+                        name: "Images",
+                        value: "image"
+                    },
+                    {
+                        name: "Documents",
+                        value: "document"
+                    },
+                    {
+                        name: "Videos",
+                        value: "video"
+                    }
+                ],
+                default: "all"
+            },
+            {
+                displayName: "Page Number",
+                name: "pageNumber",
+                type: "number",
+                displayOptions: {
+                    show: {
+                        operation: ["getMediaLibrary"]
+                    }
+                },
+                default: 1,
+                description: "Page number for pagination"
+            },
+            {
+                displayName: "Items Per Page",
+                name: "itemsPerPage",
+                type: "number",
+                displayOptions: {
+                    show: {
+                        operation: ["getMediaLibrary"]
+                    }
+                },
+                default: 20,
+                description: "Number of items per page"
+            },
+            {
+                displayName: "Post ID",
+                name: "postId",
+                type: "string",
+                displayOptions: {
+                    show: {
+                        operation: ["attachMedia"]
+                    }
+                },
+                default: "",
+                required: true
+            },
+            {
+                displayName: "Media ID",
+                name: "mediaId",
+                type: "string",
+                displayOptions: {
+                    show: {
+                        operation: ["attachMedia"]
+                    }
+                },
+                default: "",
+                required: true
+            },
+            {
+                displayName: "Media Position",
+                name: "mediaPosition",
+                type: "options",
+                displayOptions: {
+                    show: {
+                        operation: ["attachMedia"]
+                    }
+                },
+                options: [
+                    {
+                        name: "Featured Image",
+                        value: "featured"
+                    },
+                    {
+                        name: "In Content",
+                        value: "content"
+                    },
+                    {
+                        name: "Gallery",
+                        value: "gallery"
+                    },
+                    {
+                        name: "Header",
+                        value: "header"
+                    },
+                    {
+                        name: "Footer",
+                        value: "footer"
+                    }
+                ],
+                default: "content",
+                required: true
+            },
+            {
+                displayName: "Newsletter Title",
+                name: "newsletterTitle",
+                type: "string",
+                displayOptions: {
+                    show: {
+                        operation: ["createNewsletter"]
+                    }
+                },
+                default: "",
+                required: true
+            },
+            {
+                displayName: "Newsletter Content",
+                name: "newsletterContent",
+                type: "string",
+                displayOptions: {
+                    show: {
+                        operation: ["createNewsletter"]
+                    }
+                },
+                default: "",
+                required: true
+            },
+            {
+                displayName: "Subject Line",
+                name: "subjectLine",
+                type: "string",
+                displayOptions: {
+                    show: {
+                        operation: ["createNewsletter"]
+                    }
+                },
+                default: "",
+                required: true
+            },
+            {
+                displayName: "Preview Text",
+                name: "previewText",
+                type: "string",
+                displayOptions: {
+                    show: {
+                        operation: ["createNewsletter"]
+                    }
+                },
+                default: ""
+            },
+            {
+                displayName: "Schedule Date",
+                name: "scheduleDate",
+                type: "dateTime",
+                displayOptions: {
+                    show: {
+                        operation: ["createNewsletter"]
+                    }
+                },
+                default: "",
+                description: "When to send the newsletter"
+            },
+            {
+                displayName: "List ID",
+                name: "listId",
+                type: "string",
+                displayOptions: {
+                    show: {
+                        operation: ["createNewsletter"]
+                    }
+                },
+                default: "",
+                description: "ID of the mailing list to send to"
+            },
+            {
+                displayName: "Template ID",
+                name: "templateId",
+                type: "string",
+                displayOptions: {
+                    show: {
+                        operation: ["createNewsletter"]
+                    }
+                },
+                default: "",
+                description: "ID of the newsletter template to use"
+            },
+            {
+                displayName: "Template Name",
+                name: "templateName",
+                type: "string",
+                displayOptions: {
+                    show: {
+                        operation: ["createTemplate"]
+                    }
+                },
+                default: "",
+                required: true
+            },
+            {
+                displayName: "Template Content",
+                name: "templateContent",
+                type: "string",
+                displayOptions: {
+                    show: {
+                        operation: ["createTemplate"]
+                    }
+                },
+                default: "",
+                required: true
+            },
+            {
+                displayName: "Template Description",
+                name: "templateDescription",
+                type: "string",
+                displayOptions: {
+                    show: {
+                        operation: ["createTemplate"]
+                    }
+                },
+                default: ""
+            }
+        ]
+    };
+
+    async execute(this: IExecuteFunctions): Promise<INodeExecutionData[][]> {
+        const credentials = await this.getCredentials("storyChiefApi");
+        const operation = this.getNodeParameter("operation", 0) as string;
+        const returnData: INodeExecutionData[] = [];
+
+        try {
+            if (operation === "uploadMedia") {
+                const mediaUrl = this.getNodeParameter("mediaUrl", 0) as string;
+                const mediaTitle = this.getNodeParameter("mediaTitle", 0) as string;
+                const response = await this.helpers.request({
+                    method: "POST",
+                    url: "https://api.storychief.io/1.0/media",
+                    headers: {
+                        Authorization: `Bearer ${credentials.accessToken}`
+                    },
+                    body: {
+                        url: mediaUrl,
+                        title: mediaTitle
+                    }
+                });
+                returnData.push({ json: response });
+            } else if (operation === "getMediaLibrary") {
+                const pageNumber = this.getNodeParameter("pageNumber", 0) as number;
+                const itemsPerPage = this.getNodeParameter("itemsPerPage", 0) as number;
+                const mediaType = this.getNodeParameter("mediaType", 0) as string;
+                const response = await this.helpers.request({
+                    method: "GET",
+                    url: `https://api.storychief.io/1.0/media?page=${pageNumber}&per_page=${itemsPerPage}&type=${mediaType}`,
+                    headers: {
+                        Authorization: `Bearer ${credentials.accessToken}`
+                    }
+                });
+                returnData.push({ json: response });
+            } else if (operation === "searchMedia") {
+                const searchQuery = this.getNodeParameter("searchQuery", 0) as string;
+                const mediaType = this.getNodeParameter("mediaType", 0) as string;
+                const response = await this.helpers.request({
+                    method: "GET",
+                    url: `https://api.storychief.io/1.0/media/search?q=${encodeURIComponent(searchQuery)}&type=${mediaType}`,
+                    headers: {
+                        Authorization: `Bearer ${credentials.accessToken}`
+                    }
+                });
+                returnData.push({ json: response });
+            } else if (operation === "attachMedia") {
+                const postId = this.getNodeParameter("postId", 0) as string;
+                const mediaId = this.getNodeParameter("mediaId", 0) as string;
+                const mediaPosition = this.getNodeParameter("mediaPosition", 0) as string;
+                const response = await this.helpers.request({
+                    method: "POST",
+                    url: `https://api.storychief.io/1.0/posts/${postId}/media`,
+                    headers: {
+                        Authorization: `Bearer ${credentials.accessToken}`
+                    },
+                    body: {
+                        media_id: mediaId,
+                        position: mediaPosition
+                    }
+                });
+                returnData.push({ json: response });
+            } else if (operation === "createNewsletter") {
+                const title = this.getNodeParameter("newsletterTitle", 0) as string;
+                const content = this.getNodeParameter("newsletterContent", 0) as string;
+                const subjectLine = this.getNodeParameter("subjectLine", 0) as string;
+                const previewText = this.getNodeParameter("previewText", 0) as string;
+                const scheduleDate = this.getNodeParameter("scheduleDate", 0) as string;
+                const listId = this.getNodeParameter("listId", 0) as string;
+                const templateId = this.getNodeParameter("templateId", 0) as string;
+                const newsletterData: any = {
+                    title,
+                    content,
+                    subject_line: subjectLine,
+                    preview_text: previewText,
+                    scheduled_at: scheduleDate,
+                    list_id: listId
+                };
+                if (templateId) {
+                    newsletterData.template_id = templateId;
+                }
+                const response = await this.helpers.request({
+                    method: "POST",
+                    url: "https://api.storychief.io/1.0/newsletters",
+                    headers: {
+                        Authorization: `Bearer ${credentials.accessToken}`
+                    },
+                    body: newsletterData
+                });
+                returnData.push({ json: response });
+            } else if (operation === "getTemplates") {
+                const response = await this.helpers.request({
+                    method: "GET",
+                    url: "https://api.storychief.io/1.0/newsletter_templates",
+                    headers: {
+                        Authorization: `Bearer ${credentials.accessToken}`
+                    }
+                });
+                returnData.push({ json: response });
+            } else if (operation === "createTemplate") {
+                const name = this.getNodeParameter("templateName", 0) as string;
+                const content = this.getNodeParameter("templateContent", 0) as string;
+                const description = this.getNodeParameter("templateDescription", 0) as string;
+                const response = await this.helpers.request({
+                    method: "POST",
+                    url: "https://api.storychief.io/1.0/newsletter_templates",
+                    headers: {
+                        Authorization: `Bearer ${credentials.accessToken}`
+                    },
+                    body: {
+                        name,
+                        content,
+                        description
+                    }
+                });
+                returnData.push({ json: response });
+            }
+        } catch (error: any) {
+            if (error.response) {
+                const errorMessage = error.response.data.message || "Unknown error occurred";
+                const errorCode = error.response.status || 500;
+                throw new Error(`StoryChief API error (${errorCode}): ${errorMessage}`);
+            }
+            if (error.code === "ECONNREFUSED") {
+                throw new Error("Could not connect to StoryChief API. Please check your internet connection.");
+            }
+            if (error.code === "ETIMEDOUT") {
+                throw new Error("Request to StoryChief API timed out. Please try again.");
+            }
+            if (error.code === "ENOTFOUND") {
+                throw new Error("Could not find StoryChief API. Please check the URL.");
+            }
+            if (error.code === "ECONNRESET") {
+                throw new Error("Connection to StoryChief API was reset. Please try again.");
+            }
+            throw error;
+        }
+
+        return [returnData];
+    }
+}
